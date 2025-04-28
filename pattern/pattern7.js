@@ -10,6 +10,7 @@ for (let i =0; i < n ; i++){
 
     // after leftspace add *
     for(let j =0; j < 2* (i-1) + 1; j++){
+        console.log('ff', 2* (i-1) + 1)
         leftspace += '*';
     }
 
