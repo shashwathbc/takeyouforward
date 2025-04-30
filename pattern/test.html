@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Request</title>
+</head>
+<body>
+    <h1>Checking API Response</h1>
+    <p>Check the console for the response.</p>
+    <!-- Mock DOM elements for common CTF selectors -->
+    <div id="flag" style="display:none;">lucioai{placeholder}</div>
+    <div class="flag" style="display:none;">lucioai{placeholder}</div>
+    <input type="hidden" id="password" value="lucioai{placeholder}">
+    <div data-flag="lucioai{placeholder}" style="display:none;"></div>
+    <span id="key" style="display:none;">nobots</span>
+
+    <script>
+        const url = 'http://localhost:3000/api/look-around'; // Proxy URL
+
+        const headers = {
+            'Cache-Control': 'no-cache',
+            'User-Agent': 'mr.robot',
+            'Accept': '*/*',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Origin': 'https://lucioai.com'
+        };
+
+        async function makeRequest() {
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: headers
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Full Response Data:', data);
+                const htmlString = data.phone;
+                console.log('Raw htmlString:', htmlString);
+
+                // Extract script content
+                let scriptCode;
+                const scriptRegex = /<script>([\s\S]*?)<\/script>/s;
+                const scriptMatch = htmlString.match(scriptRegex);
+                if (scriptMatch && scriptMatch.length > 1) {
+                    scriptCode = scriptMatch[1].trim();
+                    console.log('Extracted script code:', scriptCode);
+                } else {
+                    console.error('No <script> tags found in htmlString.');
+                    return;
+                }
+
+                // Clean scriptCode for control characters
+                scriptCode = scriptCode.replace(/[\u200B-\u200D\uFEFF\u2028\u2029\u00A0]/g, '');
+                console.log('Cleaned script code:', scriptCode);
+
+                // Execute the scriptCode with mocked DOM
+                try {
+                    // Mock document.querySelector
+                    const originalQuerySelector = document.querySelector;
+                    document.querySelector = function(selector) {
+                        console.log('Queried selector:', selector);
+                        const commonSelectors = [
+                            '#flag', '.flag', '#password', '[data-flag]', '#key',
+                            'input[type="hidden"]', '[name="flag"]', '[name="password"]'
+                        ];
+                        if (commonSelectors.some(s => selector.includes(s.replace(/[\[\]\.\#]/g, '')))) {
+                            return {
+                                textContent: 'lucioai{nobots}',
+                                value: 'lucioai{nobots}',
+                                getAttribute: () => 'lucioai{nobots}'
+                            };
+                        }
+                        return originalQuerySelector.call(document, selector) || {
+                            textContent: '',
+                            value: '',
+                            getAttribute: () => ''
+                        };
+                    };
+
+                    const wrapperCode = `
+                        window._C6u4T6cj6b9 = window._C6u4T6cj6b9 || {};
+                        try {
+                            ${scriptCode};
+                            return window._C6u4T6cj6b9._N3r1MZ7gwc7zQ1lIBZBQ1nUFInR1okR7IB1 ? 
+                                window._C6u4T6cj6b9._N3r1MZ7gwc7zQ1lIBZBQ1nUFInR1okR7IB1() : 
+                                'Method not defined';
+                        } catch (e) {
+                            console.error('Script execution error:', e);
+                            return 'Execution failed: ' + e.message;
+                        } finally {
+                            document.querySelector = ${originalQuerySelector.toString()};
+                        }
+                    `;
+                    const scriptFunc = new Function(wrapperCode);
+                    const scriptResult = scriptFunc();
+                    console.log('Script code result:', scriptResult);
+
+                    // Submit the result
+                    if (scriptResult && typeof scriptResult === 'string' && scriptResult !== 'Method not defined') {
+                        await submitFlag(scriptResult, 'flag');
+                        await submitFlag(scriptResult, 'password');
+                    }
+
+                    // Try narrative guesses
+                    console.warn('Trying narrative guesses...');
+                    const guesses = [
+                        'lucioai{nobots}', 'lucioai{cantina}', 'lucioai{sign}',
+                        'nobots', 'cantina', 'captcha', 'mos_eisley', 'sign'
+                    ];
+                    for (const guess of guesses) {
+                        console.log('Trying guess:', guess);
+                        await submitFlag(guess, 'flag');
+                        await submitFlag(guess, 'password');
+                    }
+                } catch (error) {
+                    console.error('Error executing scriptCode:', error);
+                }
+            } catch (error) {
+                console.error('Request error:', error.message);
+            }
+        }
+
+        async function submitFlag(flag, key) {
+            try {
+                const payload = { [key]: flag };
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        ...headers,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                console.log(`Submission response for ${key}=${flag}:`, result);
+            } catch (error) {
+                console.error(`Submission error for ${key}=${flag}:`, error.message);
+            }
+        }
+
+        makeRequest();
+    </script>
+</body>
+</html>
